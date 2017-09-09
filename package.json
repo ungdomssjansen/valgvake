@@ -1,0 +1,20 @@
+{
+  "name": "valgresultat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torvalamo/valgvake.git"
+  },
+  "author": "",
+  "license": "CC-BY-NC-4.0",
+  "bugs": {
+    "url": "https://github.com/torvalamo/valgvake/issues"
+  },
+  "homepage": "https://github.com/torvalamo/valgvake#readme"
+}

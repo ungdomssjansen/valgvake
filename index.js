@@ -1,0 +1,15 @@
+const express = require('express');
+const static = require('express-static');
+const app = express()
+
+app.use(express.static('client'));
+
+const data = require('./data.js');
+
+data.request(true);
+
+app.get('/data.json', (req, res) => {
+    res.json(data.data);
+});
+
+app.listen(8888);

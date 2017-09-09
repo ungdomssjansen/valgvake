@@ -1,0 +1,116 @@
+<!doctype html>
+<html ng-app="resApp">
+    <head>
+        <title>Valgresultat 2017</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.5/angular.min.js"></script>
+        <script src="resultat.js"></script>
+        <link href="style.css" rel="stylesheet">
+        <style>
+            td.is-right {
+                text-align: right;
+            }
+            tr.is-one-pst:not(.is-selected) td {
+                font-weight: bold;
+                /*background-color: rgba(74, 16, 74, 1);*/
+                color: #4a164a;
+                text-transform: uppercase;
+            }
+            tr.is-selected td {
+                font-weight: bold;
+                font-size: 120%;
+                color: yellow !important;
+                text-transform: uppercase;
+            }
+            p.is-bold {
+                font-weight: bold;
+            }
+            progress {
+                margin-top: 3px;
+            }
+        </style>
+    </head>
+    <body ng-controller="ResultatCtr">
+        <section class="hero">
+            <div class="hero-body">
+                <div class="container is-fluid">
+                    <nav class="level">
+                        <div class="level-item has-text-centered is-larger">
+                            <div>
+                                <p class="heading">Forhåndstemmer</p>
+                                <p class="title">{{ total.counts.earlyVotes | number }}</p>
+                            </div>
+                        </div>
+                        <div class="level-item has-text-centered">
+                            <div>
+                                <p class="heading">Alle stemmer</p>
+                                <p class="title is-bold">{{ total.counts.votes | number }}</p>
+                            </div>
+                        </div>
+                        <div class="level-item has-text-centered">
+                            <img src="logo.png" alt="" style="height: 100px;">
+                        </div>
+                        <div class="level-item has-text-centered">
+                            <div>
+                                <p class="heading">Oppslutning</p>
+                                <p class="title is-bold">{{ total.counts.votes / total.counted | number : 2 }} %</p>
+                            </div>
+                        </div>
+                        <div class="level-item has-text-centered">
+                            <div>
+                                <p class="heading">Opptalt</p>
+                                <p class="title">{{ total.counts.votes / total.attendance | number : 2 }} %</p>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            <!--div class="container is-fluid">
+                <div class="heading">Delmål 5,000 stemmer: 
+                    <progress class="progress is-primary" value="6223" max="5000">6223</progress></div>
+                <p class="heading">Delmål 10,000 stemmer: 
+                    <progress class="progress is-primary" value="6223" max="10000">6223</progress></p>
+                <p class="heading">Delmål 1% stemmer: 
+                    <progress class="progress is-primary" value="0.5" max="1">0.5%</progress></p>
+            </div-->
+        </section>
+        <div class="container is-fluid">
+            <table class="table is-striped">
+                <thead>
+                    <tr>
+                        <td width="5%">#</td>
+                        <td>Fylke</td>
+                        <td width="10%" class="is-right">Stemmer</td>
+                        <td width="10%" class="is-right">Oppslutning</td>
+                        <td width="15%" class="is-right">Mandater</td>
+                        <td width="15%" class="is-right">Opptalte stemmer</td>
+                        <td width="20%">Opptelling</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="county in counties track by $index" ng-class="{'is-selected': fylke.libmand, 'is-one-pst': fylke.libpst > 1}">
+                        <td>{{ county.code }}</td>
+                        <td>{{ county.name }}</td>
+                        <td class="is-right">{{ county.votes | number}}</td>
+                        <td class="is-right">{{ county.percentage | number : 2 }} %</td>
+                        <td class="is-right">{{ county.mandate }} / {{ county.mandates }}</td>
+                        <td class="is-right">{{ county.counted | number }}</td>
+                        <td>
+                            <progress class="progress" value="{{ county.counted / county.turnout }}" max="100" 
+                                      ng-class="{'is-primary': county.percentage >= 1 && !county.mandate, 'is-medium': !county.mandate, 'is-large is-warning': county.mandate}">
+                                {{ county.counted / county.turnout | number : 1 }} %
+                            </progress>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="has-text-right" ng-switch on="fetch.status">
+                <span class="tag is-error" ng-switch-when="-1">{{ error }}</span>
+                <span class="tag is-warning" ng-switch-when="0">Oppdaterer ...</span>
+                <span class="tag is-success" ng-switch-default>Oppdatert {{ fetch.time | date : 'd. MMM y kl. HH:mm:ss' }}</span>
+            </div>
+        </div>
+    </body>
+</html>
