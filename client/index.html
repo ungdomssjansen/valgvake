@@ -55,13 +55,13 @@
                         <div class="level-item has-text-centered">
                             <div>
                                 <p class="heading">Oppslutning</p>
-                                <p class="title is-bold">{{ total.counts.votes / total.counted | number : 2 }} %</p>
+                                <p class="title is-bold">{{ (total.counts.votes / total.counted) * 100 | number : 2 }} %</p>
                             </div>
                         </div>
                         <div class="level-item has-text-centered">
                             <div>
                                 <p class="heading">Opptalt</p>
-                                <p class="title">{{ total.counts.votes / total.attendance | number : 2 }} %</p>
+                                <p class="title">{{ (total.counted.votes / total.attendance) * 100 | number : 2 }} %</p>
                             </div>
                         </div>
                     </nav>

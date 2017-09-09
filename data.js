@@ -51,17 +51,15 @@ function extract(raw) {
     parse(obj);
 }
 
+const mandates = [0, 9, 17, 19, 7, 7, 9, 7, 6, 4, 6, 14, 16, 0, 4, 9, 10, 5, 9, 6, 5];
 function parse(obj) {
     obj = 'data = ' + obj;
     
     var ctx = vm.createContext();
     vm.runInContext(obj, ctx);
     
-    consolidate(ctx.data);
-}
-
-function consolidate(obj) {
-    obj = obj.results;
+    obj = ctx.data.results;
+    
     data.total = {
         attendance: obj.elections.parliament.stats.attendance.value || 0,
         //set this later
@@ -88,7 +86,9 @@ function consolidate(obj) {
             votes: libs.voteCount,
             percentage: libs.percentage.value || 0,
             counted: getCounted(f.parties),
-            turnout: f.turnout || 0
+            turnout: f.turnout || 0,
+            mandate: 0,
+            mandates: mandates[parseInt(f.code)]
         };
     });
     data.fetch = obj.elections.parliament.updatedAt;
