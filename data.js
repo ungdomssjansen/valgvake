@@ -31,7 +31,7 @@ exports.request = function request(repeat, delay) {
             }
         });
         msg.on('close', () => {
-            repeat && setTimeout(request, delay || 60000);
+            repeat && setTimeout(() => request(repeat, delay), delay || 60000);
         });
         msg.on('error', (err) => {
             // add the error to the data object
