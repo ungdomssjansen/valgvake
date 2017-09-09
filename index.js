@@ -12,4 +12,4 @@ app.get('/data.json', (req, res) => {
     res.json(data.data);
 });
 
-app.listen(8888);
+app.listen(80);
