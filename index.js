@@ -12,4 +12,4 @@ app.get('/data.json', (req, res) => {
     res.json(data.data);
 });
 
-app.listen(80);
+app.listen(process.env.PORT || 8080);
