@@ -1,17 +1,22 @@
 <!-- Author: Tor Valamo. -->
 <!-- CC-BY-NC-4.0 -->
-<!-- Stealing data from vg.no -->
 
 <!doctype html>
 <html ng-app="resApp">
     <head>
         <title>Valgresultat 2017</title>
+        <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.5/angular.min.js"></script>
         <script src="cookie.js"></script>
         <script src="resultat.js"></script>
+        <script>
+            setTimeout(function() {
+                location.reload();
+            }, 600000);
+        </script>
         <link href="style.css" rel="stylesheet">
         <style>
             td.is-right {
@@ -43,6 +48,7 @@
             }
             progress.is-context {
                 margin-top: 6px;
+                margin-bottom: 6px;
             }
             div.is-highlighted * {
                 color: yellow; 
@@ -58,6 +64,9 @@
             }
             div.is-pinnable {
                 cursor: zoom-in;
+            }
+            div.is-clickable:hover {
+                cursor: pointer;
             }
         </style>
     </head>
@@ -75,23 +84,23 @@
                         <div class="level-item has-text-centered">
                             <div>
                                 <p class="heading">Alle stemmer</p>
-                                <p class="title is-bold">{{ total.counts.votes | number }}</p>
+                                <p class="title is-1 is-bold">{{ total.counts.votes | number }}</p>
                             </div>
                         </div>
-                        <div class="level-item has-text-centered" 
+                        <div class="level-item has-text-centered is-clickable" 
                              ng-click="toggleContext()">
                             <img src="logo.png" alt="" style="height: 100px;">
                         </div>
                         <div class="level-item has-text-centered">
                             <div>
                                 <p class="heading">Oppslutning</p>
-                                <p class="title is-bold">{{ (total.counts.votes / total.counted.votes ) * 100 | number : 2 }} %</p>
+                                <p class="title is-1 is-bold">{{ total.counts.percentage | number : 1 }} %</p>
                             </div>
                         </div>
                         <div class="level-item has-text-centered">
                             <div>
                                 <p class="heading">Opptalt</p>
-                                <p class="title">{{ (total.counted.votes / total.attendance) * 100 | number : 2 }} %</p>
+                                <p class="title">{{ total.counted.percentage | number : 1 }} %</p>
                             </div>
                         </div>
                     </nav>
@@ -105,26 +114,28 @@
                         <td width="5%">#</td>
                         <td>Fylke</td>
                         <td width="10%" class="is-right">Stemmer</td>
+                        <td width="10%" class="is-right">Forh.stem.</td>
                         <td width="10%" class="is-right">Oppslutning</td>
-                        <td width="15%" class="is-right">Mandater</td>
-                        <td width="15%" class="is-right">Opptalte stemmer</td>
+                        <td width="10%" class="is-right">Mandater</td>
+                        <td width="15%" class="is-right">Opptalt</td>
                         <td width="20%">Opptelling</td>
                     </tr>
                 </thead>
                 <tbody>
                     <tr ng-repeat="county in counties | orderBy : 'name'" 
-                        ng-class="{'is-selected': county.mandate, 'is-one-pst': county.percentage > 1}">
+                        ng-class="{'is-selected': county.counts.mandates, 'is-one-pst': county.counts.percentage >= 1}">
                         <td>{{ county.code }}</td>
                         <td>{{ county.name }}</td>
-                        <td class="is-right">{{ county.votes | number}}</td>
-                        <td class="is-right">{{ county.percentage | number : 2 }} %</td>
-                        <td class="is-right">{{ county.mandate }} / {{ county.mandates }}</td>
-                        <td class="is-right">{{ county.counted | number }}</td>
+                        <td class="is-right">{{ county.counts.votes | number}}</td>
+                        <td class="is-right">{{ county.counts.earlyVotes | number}}</td>
+                        <td class="is-right">{{ county.counts.percentage | number : 1 }} %</td>
+                        <td class="is-right">{{ county.counts.mandates }} / {{ county.counted.mandates }}</td>
+                        <td class="is-right">{{ county.counted.votes | number }}</td>
                         <td>
                             <progress class="progress" 
-                                      value="{{ county.counted / county.turnout }}" max="100" 
-                                      ng-class="{'is-primary': county.percentage >= 1 && !county.mandate, 'is-medium': !county.mandate, 'is-large is-warning': county.mandate}">
-                                {{ county.counted / county.turnout | number : 1 }} %
+                                      value="{{ county.counted.percentage }}" max="100" 
+                                      ng-class="{'is-primary': county.counts.percentage >= 1 && !county.counts.mandates, 'is-medium': !county.counts.mandates, 'is-large is-warning': county.counts.mandates}">
+                                {{ county.counted.percentage | number : 1 }} %
                             </progress>
                         </td>
                     </tr>
@@ -136,22 +147,27 @@
                         <!-- selected top county -->
                         <div class="tile is-child notification is-primary" 
                              ng-repeat="county in counties | filter : {code: getTopCounty()}" 
-                             ng-class="{'is-highlighted': county.percentage >= 1, 'is-pinnable': !topCounty, 'is-pinned': topCounty}" 
+                             ng-class="{'is-highlighted': county.counts.percentage >= 1, 'is-pinnable': !topCounty, 'is-pinned': topCounty}" 
                              ng-click="setTopCounty(topCounty ? null : county.code)">
                                 <table>
                                     <tr class="is-bold">
-                                        <td rowspan="2" width="30%" class="title is-1 is-center">{{ county.votes | number }}</td>
+                                        <td rowspan="2" width="30%" class="title is-1 is-center">{{ county.counts.votes | number }}</td>
                                         <td class="title is-3 is-center">{{ county.name }}</td>
-                                        <td rowspan="2" width="30%" class="title is-1 is-center">{{ county.percentage | number : 2 }} %</td>
+                                        <td rowspan="2" width="30%" class="title is-1 is-center">{{ county.counts.percentage | number : 1 }} %</td>
                                     </tr>
                                     <tr>
                                         <td>
                                             <progress class="progress is-small is-context" 
-                                                      value="{{ county.counted / county.turnout }}" max="100" 
-                                                      ng-class="{'is-warning': county.percentage >= 1}">
-                                                {{ county.counted / county.turnout | number : 1 }} %
+                                                      value="{{ county.counted.percentage }}" max="100" 
+                                                      ng-class="{'is-warning': county.counts.percentage >= 1}">
+                                                {{ county.counted.percentage | number : 1 }} %
                                             </progress>
                                         </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="title is-6 is-center">{{ county.counts.earlyVotes }} forhåndsstemmer</td>
+                                        <td class="title is-6 is-center">{{ county.counted.votes }} stemmer opptalt</td>
+                                        <td class="title is-6 is-center">{{ county.counts.mandates }} mandater av {{ county.counted.mandates }} mulige</td>
                                     </tr>
                                 </table>
                         </div>
@@ -165,16 +181,16 @@
                                  ng-click="setTopCounty(county.code)">
                                 <table>
                                     <tr class="is-bold">
-                                        <td rowspan="2" width="30%" class="title is-2 is-center">{{ county.votes | number }}</td>
+                                        <td rowspan="2" width="30%" class="title is-2 is-center">{{ county.counts.votes | number }}</td>
                                         <td class="title is-4 is-center">{{ county.name }}</td>
-                                        <td rowspan="2" width="30%" class="title is-2 is-center">{{ county.percentage | number : 2 }} %</td>
+                                        <td rowspan="2" width="30%" class="title is-2 is-center">{{ county.counts.percentage | number : 1 }} %</td>
                                     </tr>
                                     <tr>
                                         <td>
                                             <progress class="progress is-small is-context" 
-                                                      value="{{ county.counted / county.turnout }}" max="100" 
+                                                      value="{{ county.counted.percentage }}" max="100" 
                                                       ng-class="{'is-warning': county.percentage >= 1}">
-                                                {{ county.counted / county.turnout | number : 1 }} %
+                                                {{ county.counted.percentage | number : 1 }} %
                                             </progress>
                                         </td>
                                     </tr>

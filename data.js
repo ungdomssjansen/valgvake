@@ -1,106 +1,133 @@
-const http = require('http');
+const http = require('https');
 const vm = require('vm');
 
-const data = exports.data = {};
+const PARTIKODE = 'LIBS';
 
-exports.request = function request(repeat, delay) {
-    //console.log('Called request...');
-    http.request({
-        protocol: 'http:',
-        hostname: 'www.vg.no',
-        port: 80,
-        path: '/valgnatt/2017/valg/storting/',
-        method: 'GET'
-    }, (msg) => {
-        //console.log('In request callback');
-        msg.setEncoding('utf8');
-        var raw = '';
-        // remove error from data object
-        delete data.error;
-        msg.on('data', (chunk) => {
-            //console.log('Got data...');
-            raw += chunk;
-        });
-        msg.on('end', () => {
-            // do the thing with the string
-            try {
-                //console.log('Extracting ', raw);
-                extract(raw);
-            } catch (e) {
-                data.error = "There was an error in the parsing: " + e.message;
-            }
-        });
-        msg.on('close', () => {
-            repeat && setTimeout(() => request(repeat, delay), delay || 60000);
-        });
-        msg.on('error', (err) => {
-            // add the error to the data object
-            data.error = Error.message;
-        });
-    }).end();
-}
-
-const regex = /\<script\>\s*window\.__PRELOADED_STATE__ = (.*?)\;\s*\<\/script\>/;
-function extract(raw) {
-    var match = regex.exec(raw);
-    if (match.length < 1) {
-        data.error = 'Couldn\'t extract data from raw.';
-        return;
-    }
-    var obj = match[1];
-    parse(obj);
-}
-
-const mandates = [0, 9, 17, 19, 7, 7, 9, 7, 6, 4, 6, 14, 16, 0, 4, 9, 10, 5, 9, 6, 5];
-function parse(obj) {
-    obj = 'data = ' + obj;
-    
-    var ctx = vm.createContext();
-    vm.runInContext(obj, ctx);
-    
-    obj = ctx.data.results;
-    
-    data.total = {
-        attendance: obj.elections.parliament.stats.attendance.value || 0,
-        //set this later
-        counted: obj.elections.parliament.results.reduce((sum, e) => {
-            sum.votes += e.counts.votes.value;
-            sum.earlyVotes += e.counts.earlyVotes.value;
-            return sum;
-        }, {votes: 0, earlyVotes: 0}),
-        counts: obj.elections.parliament.results.reduce((sum, e) => {
-            if (e.code == 'LIBS') {
-                return {
-                    votes: e.counts.votes.value,
-                    earlyVotes: e.counts.earlyVotes.value
-                };
-            }
-            return sum;
-        }, {votes: 0, earlyVotes: 0})
-    };
-    data.counties = obj.counties.map((f) => {
-        var libs = f.parties['LIBS'];
-        return {
-            code: f.code,
-            name: f.name,
-            votes: libs.voteCount,
-            percentage: libs.percentage.value || 0,
-            counted: getCounted(f.parties),
-            turnout: f.turnout || 0,
-            mandate: 0,
-            mandates: mandates[parseInt(f.code)]
-        };
-    });
-    data.fetch = obj.elections.parliament.updatedAt;
-}
-
-function getCounted(parties) {
-    return Object.keys(parties).reduce((sum, p) => {
-        return sum + parties[p].voteCount;
-    }, 0);
-}
+const data = exports.data = {
+    fetch: null,
+    total: {
+        counted: {
+            votes: 0,
+            earlyVotes: 0,
+            percentage: null
+        },
+        counts: {
+            votes: 0,
+            earlyVotes: 0,
+            percentage: null
+        }
+    },
+    counties: [
+        {code: '01', fetch: null},
+        {code: '02', fetch: null},
+        {code: '03', fetch: null},
+        {code: '04', fetch: null},
+        {code: '05', fetch: null},
+        {code: '06', fetch: null},
+        {code: '07', fetch: null},
+        {code: '08', fetch: null},
+        {code: '09', fetch: null},
+        {code: '10', fetch: null},
+        {code: '11', fetch: null},
+        {code: '12', fetch: null},
+        {code: '14', fetch: null},
+        {code: '15', fetch: null},
+        {code: '16', fetch: null},
+        {code: '17', fetch: null},
+        {code: '18', fetch: null},
+        {code: '19', fetch: null},
+        {code: '20', fetch: null},
+    ]
+};
 
 process.on('uncaughtException', (e) => {
     data.error = e;
     console.log(e);
 });
+
+exports.request = function getNational(repeat, delay) {
+    getPath('/api/2017/st', (obj) => {
+        data.fetch = obj.tidspunkt.rapportGenerert;
+        
+        data.total.counted.votes = obj.stemmer.total;
+        data.total.counted.earlyVotes = obj.stemmer.fhs;
+        data.total.counted.percentage = obj.opptalt.prosent;
+        data.total.counted.mandates = obj.mandater.antall;
+        
+        var p = obj.partier.filter((p) => {
+            return p.id.partikode == PARTIKODE;
+        }).pop();
+        
+        data.total.counts.votes = p.stemmer.resultat.antall.total;
+        data.total.counts.earlyVotes = p.stemmer.resultat.antall.fhs;
+        data.total.counts.percentage = p.stemmer.resultat.prosent || 0;
+        data.total.counts.mandates = p.mandater ? p.mandater.resultat.antall : 0;
+        
+        // Check counties for updates
+        data.counties.forEach((c, i) => {
+            var l = obj._links.related.filter((l) => {
+                return c.code == l.nr;
+            }).pop();
+            if (l.rapportGenerert != c.fetch) {
+                getCounty(c.code);
+            }
+        });
+        
+        repeat && setTimeout(() => getNational(repeat, delay), delay || 60000);
+    });
+}
+
+function getCounty(nr) {
+    getPath('/api/2017/st/' + nr, (obj) => {
+        var c = data.counties.filter((c) => {
+            return c.code == obj.id.nr;
+        }).pop();
+        
+        c.fetch = obj.tidspunkt.rapportGenerert;
+        
+        c.code = obj.id.nr;
+        c.name = obj.id.navn;
+        
+        c.counted = {};
+        c.counted.votes = obj.stemmer.total;
+        c.counted.earlyVotes = obj.stemmer.fhs;
+        c.counted.percentage = obj.opptalt.prosent;
+        c.counted.mandates = obj.mandater.antall;
+        
+        var p = obj.partier.filter((p) => {
+            return p.id.partikode == PARTIKODE;
+        }).pop();
+        
+        c.counts = {};
+        c.counts.votes = p.stemmer.resultat.antall.total;
+        c.counts.earlyVotes = p.stemmer.resultat.antall.fhs;
+        c.counts.percentage = p.stemmer.resultat.prosent || 0;
+        c.counts.mandates = p.mandater ? p.mandater.resultat.antall : 0;
+    });
+}
+
+function getPath(path, cb) {
+    http.request({
+        protocol: 'https:',
+        hostname: 'valgresultat.no',
+        port: 443,
+        path: path,
+        method: 'GET'
+    }, (msg) => {
+        msg.setEncoding('utf8');
+        var raw = '';
+        msg.on('data', (chunk) => {
+            raw += chunk;
+        });
+        msg.on('end', () => {
+            try {
+                cb(JSON.parse(raw));
+            } catch(e) {
+                throw e;
+            }
+        });
+        msg.on('close', () => {
+            repeat && setTimeout(() => request(repeat, delay), delay || 60000);
+        });
+    }).end();
+}

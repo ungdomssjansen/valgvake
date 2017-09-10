@@ -42,7 +42,7 @@ angular
                                     
         function getMostVotes() {
             var sorted = $scope.counties.sort((a, b) => {
-                var v = b.votes - a.votes;
+                var v = b.counts.votes - a.counts.votes;
                 if (v == 0) return a.name.localeCompare(b.name);
                 else return v;
             });
